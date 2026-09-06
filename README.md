@@ -43,6 +43,7 @@ The shared Policy returns:
 When several rules match, the strongest decision wins:
 
 ```text
+deny > ask > allow
 ```
 
 This is a trust and visibility experiment. It is not a security boundary,

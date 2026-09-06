@@ -87,6 +87,7 @@ Result: command is blocked before execution
 If more than one rule matches, the strongest decision wins:
 
 ```text
+deny > ask > allow
 ```
 
 For example, a broad rule may allow all Git commands, while a specific rule
