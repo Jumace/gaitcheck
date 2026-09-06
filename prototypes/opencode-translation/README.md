@@ -51,8 +51,9 @@ approval experience while the policy decision remains outside OpenCode.
 ## Issue 14 Findings
 
 Non-interactive probes confirm allow, ask, deny, working-directory, timeout,
-and shell-pipeline behavior. The classifier now fails closed for shell
-composition and catches destructive commands embedded after a command prefix.
+and shell-pipeline behavior. The shared Policy evaluates composed commands by
+part and combines the part decisions with `deny > ask > allow`; the OpenCode
+permission configuration still asks for shell composition conservatively.
 The manual TUI prompt and full native OpenCode shell-parity behavior still
 require an interactive session; this prototype does not reproduce native
 shell parsing, path scanning, output persistence, or production audit

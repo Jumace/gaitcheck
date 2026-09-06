@@ -1,11 +1,10 @@
 import { tool } from "@opencode-ai/plugin"
-
-type Decision = "allow" | "ask" | "deny"
+import { evaluatePolicy } from "../../../../src/policy.ts"
 
 type AuditEvent = {
   command: string
   cwd: string
-  decision: Decision
+  decision: "allow" | "ask" | "deny"
   rule: string
   reason: string
   approval: "not_required" | "approved" | "denied"
@@ -13,53 +12,114 @@ type AuditEvent = {
   timedOut?: boolean
 }
 
-const audit: AuditEvent[] = []
-
-function classify(command: string): {
-  decision: Decision
-  rule: string
-  reason: string
-} {
-  const normalized = command.trim().replace(/\s+/g, " ")
-
-  if (/\bgit\s+reset\s+--hard\b/.test(normalized) || /\bgit\s+clean\s+(-\S*\s+)*(-f|-fd|--force)\b/.test(normalized)) {
-    return {
+const policy = {
+  rules: [
+    {
+      id: "git-destructive",
+      operation: "command.execute",
+      executable: "git",
+      arguments: ["reset", "--hard"],
+      match: "prefix",
       decision: "deny",
-      rule: "git destructive reset/clean",
-      reason: "This can discard local work irreversibly.",
-    }
-  }
-
-  if (/[;&|><`]|\$\(/.test(normalized)) {
-    return {
-      decision: "ask",
-      rule: "shell composition",
-      reason: "Shell operators make this command sequence require explicit review.",
-    }
-  }
-
-  if (/^(git\s+(commit|push)|gh\s+pr\s+(create|merge)|terraform\s+(apply|destroy)|kubectl\s+(apply|delete))(?:\s|$)/.test(normalized)) {
-    return {
-      decision: "ask",
-      rule: "known consequential command",
-      reason: "This can change repository or external state.",
-    }
-  }
-
-  if (/^(git\s+(status|diff|log)|pwd|ls(?:\s|$)|printf\s|node\s+--version|npm\s+test(?:\s|$))/.test(normalized)) {
-    return {
+      explanation: "This can discard local work irreversibly.",
+    },
+    {
+      id: "git-clean-destructive",
+      operation: "command.execute",
+      executable: "git",
+      arguments: ["clean"],
+      match: "prefix",
+      decision: "deny",
+      explanation: "This can remove untracked local work.",
+    },
+    ...[
+      ["git-commit", "git", ["commit"]],
+      ["git-push", "git", ["push"]],
+      ["gh-pr-create", "gh", ["pr", "create"]],
+      ["gh-pr-merge", "gh", ["pr", "merge"]],
+      ["terraform-apply", "terraform", ["apply"]],
+      ["terraform-destroy", "terraform", ["destroy"]],
+      ["kubectl-apply", "kubectl", ["apply"]],
+      ["kubectl-delete", "kubectl", ["delete"]],
+    ].map(([id, executable, commandArguments]) => ({
+      id,
+      operation: "command.execute" as const,
+      executable,
+      arguments: commandArguments,
+      match: "prefix" as const,
+      decision: "ask" as const,
+      explanation: "This can change repository or external state.",
+    })),
+    {
+      id: "git-status",
+      operation: "command.execute",
+      executable: "git",
+      arguments: ["status"],
       decision: "allow",
-      rule: "known read-only command",
-      reason: "This is classified as ordinary read-only development work.",
-    }
-  }
-
-  return {
-    decision: "ask",
-    rule: "unmatched command",
-    reason: "The translation layer cannot classify this command confidently.",
-  }
+      explanation: "This reads repository state.",
+    },
+    {
+      id: "git-diff",
+      operation: "command.execute",
+      executable: "git",
+      arguments: ["diff"],
+      match: "prefix",
+      decision: "allow",
+      explanation: "This reads repository changes.",
+    },
+    {
+      id: "git-log",
+      operation: "command.execute",
+      executable: "git",
+      arguments: ["log"],
+      match: "prefix",
+      decision: "allow",
+      explanation: "This reads repository history.",
+    },
+    {
+      id: "pwd",
+      operation: "command.execute",
+      executable: "pwd",
+      decision: "allow",
+      explanation: "This reads the current directory.",
+    },
+    {
+      id: "ls",
+      operation: "command.execute",
+      executable: "ls",
+      match: "prefix",
+      decision: "allow",
+      explanation: "This reads directory contents.",
+    },
+    {
+      id: "printf",
+      operation: "command.execute",
+      executable: "printf",
+      match: "prefix",
+      decision: "allow",
+      explanation: "This produces local command output.",
+    },
+    {
+      id: "node-version",
+      operation: "command.execute",
+      executable: "node",
+      arguments: ["--version"],
+      decision: "allow",
+      explanation: "This reads the Node.js version.",
+    },
+    {
+      id: "npm-test",
+      operation: "command.execute",
+      executable: "npm",
+      arguments: ["test"],
+      match: "prefix",
+      decision: "allow",
+      explanation: "This runs the project test command.",
+    },
+  ],
 }
+
+const audit: AuditEvent[] = []
 
 export default tool({
   description: "PROTOTYPE: policy-aware replacement for OpenCode's native bash tool",
@@ -70,26 +130,33 @@ export default tool({
   },
   async execute(args, context) {
     const cwd = args.workdir ? args.workdir : context.directory
-    const classification = classify(args.command)
+    const evaluation = evaluatePolicy({
+      operation: "command.execute",
+      rawCommand: args.command,
+      workingDirectory: cwd,
+    }, policy)
+    const decision = evaluation.status === "available" ? evaluation.decision : "deny"
+    const rule = evaluation.status === "available" ? evaluation.matchedRuleIds.join(",") || "unmatched" : "policy-unavailable"
+    const reason = evaluation.explanation
     const event: AuditEvent = {
       command: args.command,
       cwd,
-      decision: classification.decision,
-      rule: classification.rule,
-      reason: classification.reason,
+      decision,
+      rule,
+      reason,
       approval: "not_required",
     }
 
-    if (classification.decision === "deny") {
+    if (evaluation.status === "unavailable" || decision === "deny") {
       audit.push(event)
       return {
-        title: "Command denied",
-        output: `Denied: ${classification.reason}\nRule: ${classification.rule}`,
+        title: evaluation.status === "unavailable" ? "Policy unavailable" : "Command denied",
+        output: `${evaluation.status === "unavailable" ? "Unavailable" : "Denied"}: ${reason}\nRule: ${rule}`,
         metadata: { auditCount: audit.length, decision: event },
       }
     }
 
-    if (classification.decision === "ask") {
+    if (decision === "ask") {
       try {
         await context.ask({
           permission: "bash",
@@ -98,8 +165,8 @@ export default tool({
           metadata: {
             command: args.command,
             cwd,
-            rule: classification.rule,
-            reason: classification.reason,
+            rule,
+            reason,
             prototype: true,
           },
         })
@@ -109,7 +176,7 @@ export default tool({
         audit.push(event)
         return {
           title: "Command not executed",
-          output: `Approval denied or unavailable: ${classification.reason}`,
+          output: `Approval denied or unavailable: ${reason}`,
           metadata: { auditCount: audit.length, decision: event },
         }
       }

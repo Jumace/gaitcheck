@@ -1,0 +1,8 @@
+{
+  "name": "gaitcheck-agent-tool-translation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types --test src/policy.test.ts"
+  }
+}
