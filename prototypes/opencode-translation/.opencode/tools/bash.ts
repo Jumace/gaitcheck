@@ -22,11 +22,19 @@ function classify(command: string): {
 } {
   const normalized = command.trim().replace(/\s+/g, " ")
 
-  if (/^git\s+reset\s+--hard(?:\s|$)/.test(normalized) || /^git\s+clean\s+(-\S*\s+)*(-f|-fd|--force)(?:\s|$)/.test(normalized)) {
+  if (/\bgit\s+reset\s+--hard\b/.test(normalized) || /\bgit\s+clean\s+(-\S*\s+)*(-f|-fd|--force)\b/.test(normalized)) {
     return {
       decision: "deny",
       rule: "git destructive reset/clean",
       reason: "This can discard local work irreversibly.",
+    }
+  }
+
+  if (/[;&|><`]|\$\(/.test(normalized)) {
+    return {
+      decision: "ask",
+      rule: "shell composition",
+      reason: "Shell operators make this command sequence require explicit review.",
     }
   }
 

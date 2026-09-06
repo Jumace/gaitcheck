@@ -30,6 +30,7 @@ Expected behavior:
   tool's `context.ask()` call.
 - `git reset --hard` is denied by the shared policy without execution.
 - Unknown commands ask rather than silently execute.
+- Commands containing shell operators ask rather than inheriting an allow decision from their first command.
 - Each result includes the in-memory audit event in tool metadata.
 
 ## What This Tests
@@ -41,3 +42,13 @@ path scanning, output persistence, or production audit behavior.
 
 The key result is whether `context.ask()` provides an acceptable in-session
 approval experience while the policy decision remains outside OpenCode.
+
+## Issue 14 Findings
+
+Non-interactive probes confirm allow, ask, deny, working-directory, timeout,
+and shell-pipeline behavior. The classifier now fails closed for shell
+composition and catches destructive commands embedded after a command prefix.
+The manual TUI prompt and full native OpenCode shell-parity behavior still
+require an interactive session; this prototype does not reproduce native
+shell parsing, path scanning, output persistence, or production audit
+storage.
