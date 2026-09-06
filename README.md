@@ -162,10 +162,17 @@ walkthrough.
 │       └── .opencode/
 │           ├── package.json
 │           └── tools/bash.ts
-├── research/
+├── article_material/
+│   ├── README.md
+│   ├── ARTICLE_NOTES.md
+│   ├── PROJECT_PLAN.md
+│   └── research/
+│       ├── opencode-controlled-profile.md
+│       ├── opencode-elicitation.md
+│       └── runtime-and-mcp-sdk.md
 ├── DEVELOPMENT_LOG.md
-├── PROJECT_PLAN.md
-└── ARTICLE_NOTES.md
+├── AGENTS.md
+└── CLAUDE.md
 ```
 
 ### Root files
@@ -174,8 +181,10 @@ walkthrough.
 - `CONTEXT.md`: shared domain language and terms.
 - `package.json`: root test command.
 - `DEVELOPMENT_LOG.md`: design history, including superseded approaches.
-- `PROJECT_PLAN.md`: original project goals and architecture notes.
-- `ARTICLE_NOTES.md`: source notes for the longer project explanation.
+- `AGENTS.md`: instructions for coding agents working in this repository.
+- `CLAUDE.md`: Claude entry point for the repository instructions.
+- `article_material/`: historical project plans, research, and article source
+  material. Read its README before treating older proposals as current design.
 
 ### Shared implementation
 
@@ -199,10 +208,10 @@ walkthrough.
 - `prototypes/opencode-translation/README.md`: prototype-specific instructions
   and findings.
 
-### Research
+### Historical research
 
-- `research/`: external capability research for OpenCode, MCP, and related
-  targets.
+- `article_material/research/`: external capability research for OpenCode, MCP,
+  and related targets.
 
 ## Important Limitation
 
@@ -221,4 +230,4 @@ claim to enforce a complete security policy against a determined attacker.
 - [OpenCode Prototype Notes](prototypes/opencode-translation/README.md)
 - [Project Context](CONTEXT.md)
 - [Development Log](DEVELOPMENT_LOG.md)
-- [Project Plan](PROJECT_PLAN.md)
+- [Article Material](article_material/README.md)
