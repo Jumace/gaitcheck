@@ -59,6 +59,7 @@ export type PolicyPartEvaluation = {
 export type PolicyEvaluation =
   | {
       status: "available"
+      correlationId?: string
       decision: PolicyDecision
       explanation: string
       matchedRuleIds: string[]
@@ -66,6 +67,7 @@ export type PolicyEvaluation =
     }
   | {
       status: "unavailable"
+      correlationId?: string
       explanation: string
       matchedRuleIds: []
       parts: []
@@ -80,17 +82,18 @@ const decisionRank: Record<PolicyDecision, number> = {
 export function evaluatePolicy(request: OperationRequest, policy: Policy): PolicyEvaluation {
   const configurationError = validatePolicy(policy)
   if (configurationError) {
-    return unavailable(`Policy configuration is unavailable: ${configurationError}`)
+    return unavailable(`Policy configuration is unavailable: ${configurationError}`, request.correlationId)
   }
 
   if (request.operation !== "command.execute" || !request.rawCommand.trim() || !request.workingDirectory) {
-    return unavailable("Operation request is unavailable: command.execute, rawCommand, and workingDirectory are required.")
+    return unavailable("Operation request is unavailable: command.execute, rawCommand, and workingDirectory are required.", request.correlationId)
   }
 
   const parsed = parseCommand(request.rawCommand)
   if (parsed.mode === "uncertain") {
     return {
       status: "available",
+      correlationId: request.correlationId,
       decision: "ask",
       explanation: "The shell structure cannot be classified confidently.",
       matchedRuleIds: [],
@@ -100,7 +103,7 @@ export function evaluatePolicy(request: OperationRequest, policy: Policy): Polic
 
   if (parsed.mode === "composed") {
     const parts = parsed.parts.map((part) => evaluatePart(part, request.workingDirectory, policy.rules))
-    return combineParts(parts)
+    return combineParts(parts, request.correlationId)
   }
 
   const parsedMetadata = parseSimpleCommand(request.rawCommand)
@@ -112,11 +115,11 @@ export function evaluatePolicy(request: OperationRequest, policy: Policy): Polic
       [],
       parsedMetadata,
     )
-    return combineParts([part])
+    return combineParts([part], request.correlationId)
   }
 
   const part = evaluatePart(request.rawCommand, request.workingDirectory, policy.rules, parsedMetadata)
-  return combineParts([part])
+  return combineParts([part], request.correlationId)
 }
 
 function evaluatePart(
@@ -152,10 +155,11 @@ function matchesRule(rule: PolicyRule, parsed: ParsedCommandMetadata, workingDir
   return expected.length === actual.length && expected.every((argument, index) => actual[index] === argument)
 }
 
-function combineParts(parts: PolicyPartEvaluation[]): PolicyEvaluation {
+function combineParts(parts: PolicyPartEvaluation[], correlationId?: string): PolicyEvaluation {
   const decision = strongestDecision(parts.map((part) => part.decision))
   return {
     status: "available",
+    correlationId,
     decision,
     explanation: parts.map((part) => part.explanation).join(" "),
     matchedRuleIds: parts.flatMap((part) => part.matchedRuleIds),
@@ -186,8 +190,8 @@ function partResult(
   return { rawCommand, decision, explanation, matchedRuleIds, parsedCommandMetadata }
 }
 
-function unavailable(explanation: string): PolicyEvaluation {
-  return { status: "unavailable", explanation, matchedRuleIds: [], parts: [] }
+function unavailable(explanation: string, correlationId?: string): PolicyEvaluation {
+  return { status: "unavailable", correlationId, explanation, matchedRuleIds: [], parts: [] }
 }
 
 function validatePolicy(policy: Policy): string | undefined {

@@ -170,3 +170,12 @@ test("keeps approval scope separate from policy decisions", () => {
   assert.equal(result.decision, "ask")
   assert.equal("scope" in result, false)
 })
+
+test("propagates the operation correlation identity", () => {
+  const result = evaluatePolicy({
+    ...request("git status"),
+    correlationId: "operation-123",
+  }, policy)
+
+  assert.equal(result.correlationId, "operation-123")
+})

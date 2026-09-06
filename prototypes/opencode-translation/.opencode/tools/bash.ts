@@ -171,6 +171,7 @@ export default tool({
             cwd,
             rule,
             reason,
+            correlationId,
             prototype: true,
           },
         })
