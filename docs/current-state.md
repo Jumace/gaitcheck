@@ -21,22 +21,61 @@ Harness adapter.
 
 The current path is:
 
-```text
-OpenCode bash tool
-        |
-        v
-OpenCode Harness adapter
-        |
-        v
-Shared Policy evaluator
-        |
-        +--> allow, ask, or deny
-        |
-        v
-OpenCode Approval request when needed
-        |
-        v
-Bun shell execution and in-memory Audit event
+```mermaid
+flowchart TD
+    Agent[Agent] --> OpenCode[OpenCode bash tool]
+    OpenCode --> Adapter[OpenCode Harness adapter]
+    Adapter --> Request[Operation request<br/>command.execute]
+    Request --> Policy[Shared Policy evaluator]
+    Policy --> Allow[allow]
+    Policy --> Ask[ask]
+    Policy --> Deny[deny]
+    Ask --> TUI[OpenCode Approval request]
+    TUI --> Approved[approved]
+    TUI --> Rejected[rejected or unavailable]
+    Allow --> Core[Execution core]
+    Approved --> Core
+    Deny --> Blocked[No execution]
+    Core --> Result[Operation result]
+    Core --> Audit[In-memory Audit event]
+```
+
+The Adapter translates Harness-specific input. The Policy makes the shared
+decision. The Execution core runs an approved command and creates the
+Operation result and Audit event.
+
+The high-level runtime flow is:
+
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant Harness as OpenCode
+    participant Adapter as Harness adapter
+    participant Policy
+    participant Human
+    participant Core as Execution core
+
+    Agent->>Harness: Request bash tool
+    Harness->>Adapter: Raw command and working directory
+    Adapter->>Policy: Evaluate Operation request
+    Policy-->>Adapter: allow, ask, or deny
+
+    alt allow
+        Adapter->>Core: Execute
+    else ask
+        Adapter->>Human: Show Approval request
+        Human-->>Adapter: Approve or reject
+        alt approved
+            Adapter->>Core: Execute
+        else rejected or unavailable
+            Adapter-->>Harness: Operation result without execution
+        end
+    else deny
+        Adapter-->>Harness: Denied Operation result
+    end
+
+    Core-->>Adapter: Output, errors, exit status
+    Adapter-->>Harness: Operation result and Audit event
 ```
 
 The implementation currently lives on the local branch
@@ -90,6 +129,7 @@ The Policy returns a Policy evaluation with one of these Policy decisions:
 ```text
 allow
 ask
+deny
 ```
 
 The evaluator supports:
