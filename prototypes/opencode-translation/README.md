@@ -6,6 +6,11 @@ It replaces OpenCode's native `bash` tool with `.opencode/tools/bash.ts` and
 tests whether a shared policy can keep `allow`, `ask`, and `deny` behavior in
 the active OpenCode session.
 
+The prototype config keeps the outer `bash` permission at `ask` by default and
+allows only the small read-only command set explicitly. This is required for
+`context.ask()` to reach the TUI; setting `bash` to global `allow` silently
+approves every custom-tool request.
+
 ## Run
 
 From this directory, start OpenCode:

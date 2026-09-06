@@ -2,7 +2,19 @@
   "$schema": "https://opencode.ai/config.json",
   "permission": {
     "*": "deny",
-    "bash": "allow",
+    "bash": {
+      "*": "ask",
+      "printf *": "allow",
+      "pwd": "allow",
+      "ls*": "allow",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "node --version": "allow",
+      "npm test*": "allow",
+      "git reset --hard*": "deny",
+      "git clean*": "deny"
+    },
     "read": "allow"
   }
 }
