@@ -1,0 +1,2 @@
+#!/bin/sh
+GAITCHECK_WRAPPED_COMMAND=gh exec node --experimental-strip-types "$(dirname "$0")/../wrapper.ts" "$@"
