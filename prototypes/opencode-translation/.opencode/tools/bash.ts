@@ -7,7 +7,8 @@ type AuditEvent = {
   decision: "allow" | "ask" | "deny"
   rule: string
   reason: string
-  approval: "not_required" | "approved" | "denied"
+  approval: "not_required" | "approved" | "unavailable"
+  correlationId: string
   exitCode?: number
   timedOut?: boolean
 }
@@ -130,10 +131,12 @@ export default tool({
   },
   async execute(args, context) {
     const cwd = args.workdir ? args.workdir : context.directory
+    const correlationId = crypto.randomUUID()
     const evaluation = evaluatePolicy({
       operation: "command.execute",
       rawCommand: args.command,
       workingDirectory: cwd,
+      correlationId,
     }, policy)
     const decision = evaluation.status === "available" ? evaluation.decision : "deny"
     const rule = evaluation.status === "available" ? evaluation.matchedRuleIds.join(",") || "unmatched" : "policy-unavailable"
@@ -145,6 +148,7 @@ export default tool({
       rule,
       reason,
       approval: "not_required",
+      correlationId,
     }
 
     if (evaluation.status === "unavailable" || decision === "deny") {
@@ -172,7 +176,7 @@ export default tool({
         })
         event.approval = "approved"
       } catch {
-        event.approval = "denied"
+        event.approval = "unavailable"
         audit.push(event)
         return {
           title: "Command not executed",

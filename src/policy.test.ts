@@ -129,6 +129,20 @@ test("asks when shell structure is uncertain", () => {
   assert.equal(result.parts[0]?.parsedCommandMetadata?.shellMode, "uncertain")
 })
 
+test("does not trust metadata that conflicts with the Raw command", () => {
+  const result = evaluatePolicy({
+    ...request("git reset --hard HEAD"),
+    parsedCommandMetadata: {
+      executable: "git",
+      arguments: ["status"],
+      shellMode: "simple",
+    },
+  }, policy)
+
+  assert.equal(result.decision, "ask")
+  assert.match(result.explanation, /conflicts with the Raw command/)
+})
+
 test("can restrict an allow rule to one working directory", () => {
   const restrictedPolicy: Policy = {
     rules: [{

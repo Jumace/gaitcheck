@@ -57,4 +57,7 @@ permission configuration still asks for shell composition conservatively.
 The manual TUI prompt and full native OpenCode shell-parity behavior still
 require an interactive session; this prototype does not reproduce native
 shell parsing, path scanning, output persistence, or production audit
-storage.
+storage. OpenCode's `context.ask()` API reports rejection as a failed
+promise without distinguishing user denial from an unavailable approval
+surface, so this adapter records that outcome as `unavailable` rather than
+claiming a more precise status.

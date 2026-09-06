@@ -103,7 +103,19 @@ export function evaluatePolicy(request: OperationRequest, policy: Policy): Polic
     return combineParts(parts)
   }
 
-  const part = evaluatePart(request.rawCommand, request.workingDirectory, policy.rules, request.parsedCommandMetadata)
+  const parsedMetadata = parseSimpleCommand(request.rawCommand)
+  if (request.parsedCommandMetadata && !sameMetadata(parsedMetadata, request.parsedCommandMetadata)) {
+    const part = partResult(
+      request.rawCommand,
+      "ask",
+      "Parsed command metadata conflicts with the Raw command.",
+      [],
+      parsedMetadata,
+    )
+    return combineParts([part])
+  }
+
+  const part = evaluatePart(request.rawCommand, request.workingDirectory, policy.rules, parsedMetadata)
   return combineParts([part])
 }
 
@@ -123,10 +135,7 @@ function evaluatePart(
     return partResult(rawCommand, "ask", "No Policy rule matches this command.", [], parsed)
   }
 
-  const decision = matches.reduce<PolicyDecision>(
-    (strongest, rule) => decisionRank[rule.decision] > decisionRank[strongest] ? rule.decision : strongest,
-    "allow",
-  )
+  const decision = strongestDecision(matches.map((rule) => rule.decision))
   const selected = matches.filter((rule) => rule.decision === decision)
   return partResult(rawCommand, decision, selected.map((rule) => rule.explanation).join(" "), matches.map((rule) => rule.id), parsed)
 }
@@ -144,10 +153,7 @@ function matchesRule(rule: PolicyRule, parsed: ParsedCommandMetadata, workingDir
 }
 
 function combineParts(parts: PolicyPartEvaluation[]): PolicyEvaluation {
-  const decision = parts.reduce<PolicyDecision>(
-    (strongest, part) => decisionRank[part.decision] > decisionRank[strongest] ? part.decision : strongest,
-    "allow",
-  )
+  const decision = strongestDecision(parts.map((part) => part.decision))
   return {
     status: "available",
     decision,
@@ -155,6 +161,19 @@ function combineParts(parts: PolicyPartEvaluation[]): PolicyEvaluation {
     matchedRuleIds: parts.flatMap((part) => part.matchedRuleIds),
     parts,
   }
+}
+
+function strongestDecision(decisions: PolicyDecision[]): PolicyDecision {
+  return decisions.reduce<PolicyDecision>(
+    (strongest, decision) => decisionRank[decision] > decisionRank[strongest] ? decision : strongest,
+    "allow",
+  )
+}
+
+function sameMetadata(left: ParsedCommandMetadata, right: ParsedCommandMetadata): boolean {
+  return left.shellMode === right.shellMode &&
+    left.executable === right.executable &&
+    JSON.stringify(left.arguments ?? []) === JSON.stringify(right.arguments ?? [])
 }
 
 function partResult(
