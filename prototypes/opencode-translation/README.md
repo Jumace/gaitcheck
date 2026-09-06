@@ -1,5 +1,8 @@
 # OpenCode Translation Target Prototype
 
+For the full engineering state, see [`docs/current-state.md`](../../../docs/current-state.md).
+For a beginner-friendly explanation, see [`docs/beginners-guide.md`](../../../docs/beginners-guide.md).
+
 Throwaway experiment for issue [Prototype the OpenCode translation target](https://github.com/Jumace/gaitcheck/issues/10).
 
 It replaces OpenCode's native `bash` tool with `.opencode/tools/bash.ts` and
