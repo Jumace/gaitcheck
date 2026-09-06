@@ -406,3 +406,24 @@ The next Harness comparison is Claude Code through its `PreToolUse` hook. A
 CLI-wrapper target remains useful for Harnesses with weak extension APIs, but it
 must continue to be described as a trust and visibility adapter rather than an
 enforcement boundary.
+
+## CLI-wrapper Translation Prototype
+
+The CLI-wrapper experiment was implemented in
+`prototypes/cli-wrapper-translation/`. Small PATH shims for `git`, `gh`,
+`terraform`, and `kubectl` translate ordinary argv into the shared
+`command.execute` Operation and reuse the shared Policy evaluator.
+
+The prototype forwards safe commands such as `git status`, asks for
+consequential commands such as `git commit`, `git push`, `gh pr create`,
+`terraform apply`, and `kubectl delete`, and denies `git reset --hard` before
+the real executable runs. Each invocation records a correlation-bearing,
+JSONL-shaped Audit event containing the command, decision, explanation,
+approval result, and child exit result when applicable.
+
+The experiment confirms that PATH wrappers are useful compatibility and
+visibility adapters for Harnesses with weak extension APIs. They do not
+provide active-Harness approval parity: approval occurs in the wrapper's
+controlling terminal and has no session scope. Shell composition, absolute
+executable paths, equivalent commands, and direct APIs bypass the wrapper.
+The target is therefore not an enforcement boundary.

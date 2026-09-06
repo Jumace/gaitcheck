@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --experimental-strip-types --test src/policy.test.ts"
+    "test": "node --experimental-strip-types --test src/policy.test.ts",
+    "prototype:cli-wrapper": "node --experimental-strip-types prototypes/cli-wrapper-translation/wrapper.ts"
   }
 }

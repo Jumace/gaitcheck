@@ -22,6 +22,9 @@ Policy:
 flowchart LR
     Agent[Agent] --> Harness[Agent Harness]
     Harness --> Adapter[Harness adapter]
+    Agent --> Shell[Ordinary shell invocation]
+    Shell --> Wrapper[CLI-wrapper adapter]
+    Wrapper --> Request
     Adapter --> Request[Operation request]
     Request --> Policy[Shared Policy]
     Policy --> Decision{Policy decision}
@@ -79,7 +82,7 @@ This is not a finished product. The following work remains open:
 - A shared normalized Execution contract across all Harness adapters.
 - A universal Audit contract and persistent audit storage.
 - A Claude Code Harness adapter.
-- A CLI-wrapper Harness adapter.
+- A CLI-wrapper Harness adapter prototype in `prototypes/cli-wrapper-translation/`.
 - Complete shell parsing and native shell behavior parity.
 - Credential, network, and operating-system isolation.
 

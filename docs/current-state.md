@@ -25,6 +25,9 @@ The current path is:
 flowchart TD
     Agent[Agent] --> OpenCode[OpenCode bash tool]
     OpenCode --> Adapter[OpenCode Harness adapter]
+    Agent --> Shell[Ordinary shell invocation]
+    Shell --> Wrapper[CLI-wrapper adapter]
+    Wrapper --> Request
     Adapter --> Request[Operation request<br/>command.execute]
     Request --> Policy[Shared Policy evaluator]
     Policy --> Allow[allow]
@@ -352,7 +355,7 @@ The prototype does not provide:
 - Persistent audit storage.
 - A user-facing Policy configuration format.
 - A Claude Code adapter.
-- A CLI-wrapper adapter.
+- A production CLI-wrapper adapter. The issue 13 prototype is documented below.
 - A normalized Execution contract implementation for all Harness adapters.
 - A universal Audit contract implementation.
 - A reliable distinction between OpenCode user rejection and unavailable
@@ -361,6 +364,19 @@ The prototype does not provide:
 The custom OpenCode tool can also be bypassed by changing OpenCode
 configuration, enabling another unrestricted tool, installing a plugin, or
 using a different process with the same operating-system account.
+
+### CLI-wrapper target prototype
+
+The throwaway PATH adapter is in `prototypes/cli-wrapper-translation/`. It
+translates the shared Policy evaluator into wrappers for `git`, `gh`,
+`terraform`, and `kubectl`, asks in the wrapper terminal, forwards allowed
+argv directly to the real executable, denies destructive commands, and emits
+JSONL-shaped audit events. It confirms that wrappers can provide broad
+compatibility and useful visibility, but approval is outside the active
+Harness and has no session scope. Shell composition, absolute executable
+paths, equivalent commands, and direct APIs bypass the adapter. The target is
+therefore a compatibility and visibility fallback, not an enforcement
+boundary or an approval-parity target.
 
 ## Issue State
 
