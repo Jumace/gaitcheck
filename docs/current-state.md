@@ -25,6 +25,9 @@ The current path is:
 flowchart TD
     Agent[Agent] --> OpenCode[OpenCode bash tool]
     OpenCode --> Adapter[OpenCode Harness adapter]
+    Agent --> Shell[Ordinary shell invocation]
+    Shell --> Wrapper[CLI-wrapper adapter]
+    Wrapper --> Request
     Adapter --> Request[Operation request<br/>command.execute]
     Request --> Policy[Shared Policy evaluator]
     Policy --> Allow[allow]

@@ -22,6 +22,9 @@ Policy:
 flowchart LR
     Agent[Agent] --> Harness[Agent Harness]
     Harness --> Adapter[Harness adapter]
+    Agent --> Shell[Ordinary shell invocation]
+    Shell --> Wrapper[CLI-wrapper adapter]
+    Wrapper --> Request
     Adapter --> Request[Operation request]
     Request --> Policy[Shared Policy]
     Policy --> Decision{Policy decision}

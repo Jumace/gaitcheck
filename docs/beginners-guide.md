@@ -99,6 +99,9 @@ denies `git reset --hard`. The final decision is `deny`.
 flowchart LR
     Agent[Agent] --> Harness[Agent Harness]
     Harness --> Adapter[Harness adapter]
+    Agent --> Shell[Ordinary shell invocation]
+    Shell --> Wrapper[CLI-wrapper adapter]
+    Wrapper --> Request
     Adapter --> Request[Operation request]
     Request --> Policy[Shared Policy]
     Policy --> Allow[allow]
@@ -202,6 +205,13 @@ It should show:
 - The reason for the request.
 
 OpenCode shows this request in its TUI.
+
+When a Harness has no useful extension point, a CLI-wrapper adapter can place
+itself earlier in `PATH`. It can apply the same Policy and forward an approved
+command, but its approval prompt is outside the Harness and the wrapper can be
+bypassed by absolute paths, shell composition, equivalent commands, or direct
+APIs. The CLI wrapper is therefore a compatibility and visibility fallback,
+not an enforcement boundary.
 
 ### Approval outcome
 
